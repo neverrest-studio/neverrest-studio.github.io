@@ -1242,7 +1242,7 @@ fetch('https://neverrest-studio.github.io/neverrestaesencryption-jc.html')
         checkingContainer.style.display = 'none';
       } else if (text.trim() === '停') {
         // 4. 如果是"停"，就显示"校验不通过，服务器断开连接"
-        checkingContainer.innerHTML = '<div class="failed-check">校验不通过</div>';
+        checkingContainer.innerHTML = '<div class="failed-check">校验不通过，服务器断开连接…</div>';
       }
     }, 1000); // 这里的1000就是1秒
   });
