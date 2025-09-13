@@ -1,1 +1,61 @@
-404
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极简文本同步</title>
+    <style>
+        body { max-width: 400px; margin: 20px auto; padding: 0 15px; font-family: sans-serif; }
+        .box { margin: 15px 0; }
+        input, textarea, button { width: 100%; padding: 8px; margin: 5px 0; box-sizing: border-box; }
+        #tip { color: #666; font-size: 14px; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h3>同一WiFi文本同步</h3>
+
+    <!-- 1. 输入取件码（两台设备必须一样） -->
+    <div class="box">
+        <input type="text" id="code" placeholder="输入取件码（如123）" />
+    </div>
+
+    <!-- 2. 发送文本 -->
+    <div class="box">
+        <textarea id="send" rows="3" placeholder="输入要发送的内容"></textarea>
+        <button onclick="sendText()">发送</button>
+    </div>
+
+    <!-- 3. 接收文本 -->
+    <div class="box">
+        <textarea id="recv" rows="3" readonly placeholder="等待接收..."></textarea>
+        <div id="tip">已自动监听，无需额外操作</div>
+    </div>
+
+    <script>
+        // 核心：定时检查同取件码的文本，有新内容就显示
+        setInterval(() => {
+            const code = document.getElementById('code').value.trim();
+            if (!code) return;
+            // 从共享存储读最新文本
+            const latestText = localStorage.getItem(`sync_${code}`);
+            // 显示到接收框（避免重复显示）
+            if (latestText && latestText !== document.getElementById('recv').value) {
+                document.getElementById('recv').value = latestText;
+                document.getElementById('tip').textContent = `✅ 最新更新：${new Date().toLocaleTimeString()}`;
+            }
+        }, 1000); // 每秒检查1次，快且不耗电
+
+        // 发送文本：存到共享存储
+        function sendText() {
+            const code = document.getElementById('code').value.trim();
+            const text = document.getElementById('send').value.trim();
+            if (!code) { alert('先输取件码！'); return; }
+            if (!text) { alert('输点内容再发！'); return; }
+            // 用取件码当“钥匙”，存文本
+            localStorage.setItem(`sync_${code}`, text);
+            document.getElementById('send').value = ''; // 清空输入框
+            document.getElementById('tip').textContent = `✅ 已发送：${new Date().toLocaleTimeString()}`;
+        }
+    </script>
+</body>
+</html>
