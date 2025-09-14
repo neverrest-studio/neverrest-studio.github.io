@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalStorage卡片管理器</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --danger-color: #e74c3c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --dark-color: #2c3e50;
+            --light-color: #ecf0f1;
+            --transition-speed: 0.35s;
+            --easing: cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #333;
+            transition: background-color 0.5s ease;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all var(--transition-speed) var(--easing);
+        }
+        
+        h1 {
+            color: var(--dark-color);
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: 600;
+            font-size: 2.2rem;
+            opacity: 0;
+            transform: translateY(-20px);
+            animation: fadeInDown 0.5s var(--easing) forwards;
+        }
+        
+        @keyframes fadeInDown {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 25px 0;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s var(--easing) forwards;
+            animation-delay: 0.2s;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .action-btn {
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s var(--easing);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 180px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .action-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.2);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+        
+        .action-btn:hover::after {
+            transform: translateX(0);
+        }
+        
+        .scan-btn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .scan-btn:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        .clear-all-btn {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .clear-all-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+        }
+        
+        .card {
+            margin-bottom: 20px;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 10px;
+            overflow: hidden;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all var(--transition-speed) var(--easing);
+            opacity: 0;
+            transform: translateY(20px) scale(0.98);
+            animation: cardEntrance 0.5s var(--easing) forwards;
+        }
+        
+        @keyframes cardEntrance {
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .card:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+            cursor: pointer;
+            transition: all var(--transition-speed) var(--easing);
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .card-header:hover {
+            background: linear-gradient(135deg, #e4e8eb 0%, #d5d9dc 100%);
+        }
+        
+        .card-title {
+            font-weight: 600;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            flex-shrink: 0;
+        }
+        
+        .key-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+            display: inline-block;
+            padding-right: 10px;
+            transition: all 0.2s ease;
+        }
+        
+        .key-size {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-left: 8px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            background: rgba(0,0,0,0.05);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-left: 15px;
+            flex-shrink: 0;
+        }
+        
+        .delete-btn {
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            transition: all 0.2s var(--easing);
+            font-weight: 500;
+            background-color: var(--danger-color);
+            color: white;
+            box-shadow: none;
+            outline: none;
+        }
+        
+        .delete-btn:hover {
+            background-color: #c0392b;
+            transform: scale(1.05);
+        }
+        
+        .card-content {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height var(--transition-speed) var(--easing);
+        }
+        
+        .card-content-inner {
+            padding: 20px;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all var(--transition-speed) var(--easing);
+        }
+        
+        .card-content.show .card-content-inner {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .key-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all var(--transition-speed) var(--easing);
+        }
+        
+        .key-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transform: translateY(-2px);
+        }
+        
+        .key-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        
+        .key-value {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            margin-bottom: 12px;
+            min-height: 80px;
+            white-space: pre-wrap;
+            background-color: white;
+            transition: all var(--transition-speed) var(--easing);
+        }
+        
+        .key-value:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            outline: none;
+        }
+        
+        .key-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .edit-btn, .save-btn, .cancel-btn {
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+            transition: all 0.2s var(--easing);
+            font-weight: 500;
+            box-shadow: none;
+            outline: none;
+        }
+        
+        .edit-btn {
+            background-color: var(--warning-color);
+            color: white;
+        }
+        
+        .save-btn {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .cancel-btn {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .edit-btn:hover, .save-btn:hover, .cancel-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+            font-size: 18px;
+            opacity: 0;
+            animation: fadeIn 0.5s var(--easing) forwards;
+        }
+        
+        .error-message {
+            color: white;
+            margin: 15px 0;
+            padding: 15px;
+            background-color: var(--danger-color);
+            border-radius: 8px;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all var(--transition-speed) var(--easing);
+        }
+        
+        .error-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 30px;
+            color: #7f8c8d;
+            font-size: 16px;
+            opacity: 0;
+            animation: fadeIn 0.5s var(--easing) forwards;
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .fade-out {
+            animation: fadeOut var(--transition-speed) var(--easing) forwards;
+        }
+        
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+        }
+        
+        .confirmation-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--transition-speed) var(--easing);
+        }
+        
+        .confirmation-dialog.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .dialog-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 90%;
+            transform: scale(0.9);
+            transition: transform var(--transition-speed) var(--easing);
+        }
+        
+        .confirmation-dialog.show .dialog-content {
+            transform: scale(1);
+        }
+        
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .dialog-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s var(--easing);
+            box-shadow: none;
+            outline: none;
+        }
+        
+        .dialog-btn-cancel {
+            background-color: #bdc3c7;
+            color: #2c3e50;
+        }
+        
+        .dialog-btn-confirm {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        .dialog-btn-cancel:hover, .dialog-btn-confirm:hover {
+            transform: scale(1.05);
+        }
+        
+        /* 波纹动画效果 */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.4);
+            transform: scale(0);
+            animation: ripple var(--transition-speed) var(--easing);
+            pointer-events: none;
+        }
+        
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LocalStorage卡片管理器</h1>
+        
+        <div class="button-group">
+            <button class="action-btn scan-btn" onclick="scanLocalStorage()">
+                <i class="fas fa-sync-alt"></i> 扫描LocalStorage
+            </button>
+            <button class="action-btn clear-all-btn" onclick="showClearAllConfirmation()">
+                <i class="fas fa-trash-alt"></i> 一键清除所有数据
+            </button>
+        </div>
+        
+        <div id="loading" class="loading" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i> 正在扫描LocalStorage，请稍候...
+        </div>
+        
+        <div id="errorMessage" class="error-message"></div>
+        
+        <div id="cardsContainer">
+            <div class="no-data">点击"扫描LocalStorage"按钮查看数据</div>
+        </div>
+    </div>
+
+    <!-- 确认对话框 -->
+    <div id="confirmationDialog" class="confirmation-dialog">
+        <div class="dialog-content">
+            <h3>确认清除所有数据</h3>
+            <p>您确定要清除所有LocalStorage数据吗？此操作不可撤销！</p>
+            <div class="dialog-buttons">
+                <button class="dialog-btn dialog-btn-cancel" onclick="hideClearAllConfirmation()">取消</button>
+                <button class="dialog-btn dialog-btn-confirm" onclick="clearAllData()">确认清除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Font Awesome 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <script>
+        // 存储当前域名的LocalStorage数据
+        let currentStorageData = {};
+        
+        // 添加波纹效果
+        function createRipple(event) {
+            const button = event.currentTarget;
+            const rect = button.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = event.clientX - rect.left - size / 2;
+            const y = event.clientY - rect.top - size / 2;
+            
+            const ripple = document.createElement('span');
+            ripple.className = 'ripple';
+            ripple.style.width = ripple.style.height = `${size}px`;
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+            
+            button.appendChild(ripple);
+            
+            setTimeout(() => ripple.remove(), 1000);
+        }
+        
+        // 为所有按钮添加波纹效果
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', createRipple);
+        });
+        
+        // 显示错误消息
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+            setTimeout(() => errorEl.classList.remove('show'), 3000);
+        }
+        
+        // 显示确认对话框
+        function showClearAllConfirmation() {
+            const dialog = document.getElementById('confirmationDialog');
+            dialog.classList.add('show');
+        }
+        
+        // 隐藏确认对话框
+        function hideClearAllConfirmation() {
+            const dialog = document.getElementById('confirmationDialog');
+            dialog.classList.remove('show');
+        }
+        
+        // 清除所有数据
+        function clearAllData() {
+            hideClearAllConfirmation();
+            
+            try {
+                localStorage.clear();
+                currentStorageData = {};
+                
+                // 添加淡出动画
+                const cards = document.querySelectorAll('.card');
+                cards.forEach(card => {
+                    card.classList.add('fade-out');
+                });
+                
+                // 动画完成后移除卡片
+                setTimeout(() => {
+                    document.getElementById('cardsContainer').innerHTML = 
+                        '<div class="no-data fade-in">当前没有LocalStorage数据</div>';
+                }, 300);
+            } catch (e) {
+                showError(`清除所有数据时出错: ${e.message}`);
+            }
+        }
+        
+        // 扫描LocalStorage
+        function scanLocalStorage() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('cardsContainer').innerHTML = '';
+            
+            setTimeout(() => {
+                try {
+                    currentStorageData = {};
+                    
+                    // 收集所有键值对
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        currentStorageData[key] = localStorage.getItem(key);
+                    }
+                    
+                    displayCards();
+                } catch (e) {
+                    showError(`扫描LocalStorage时出错: ${e.message}`);
+                } finally {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            }, 300); // 添加轻微延迟让加载动画更自然
+        }
+        
+        // 显示卡片
+        function displayCards() {
+            const cardsContainer = document.getElementById('cardsContainer');
+            
+            if (Object.keys(currentStorageData).length === 0) {
+                cardsContainer.innerHTML = '<div class="no-data fade-in">当前没有LocalStorage数据</div>';
+                return;
+            }
+            
+            cardsContainer.innerHTML = '';
+            
+            // 为每个键创建卡片
+            Object.keys(currentStorageData).forEach((key, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.dataset.key = key;
+                card.style.animationDelay = `${index * 0.05}s`;
+                
+                // 计算值的大小
+                const valueSize = new Blob([currentStorageData[key]]).size;
+                
+                card.innerHTML = `
+                    <div class="card-header" onclick="toggleCard(this)">
+                        <div class="card-title">
+                            <span class="key-name" title="${key}">${key}</span>
+                            <span class="key-size">(${formatBytes(valueSize)})</span>
+                        </div>
+                        <div class="card-actions">
+                            <button class="delete-btn" onclick="deleteKey('${key}', event)">
+                                <i class="fas fa-trash"></i> 删除
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-content-inner">
+                            <div class="key-item">
+                                <div class="key-header">
+                                    <span class="key-name">${key}</span>
+                                    <div class="key-actions">
+                                        <button class="edit-btn" onclick="editKeyValue('${key}', event)">
+                                            <i class="fas fa-edit"></i> 编辑
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="key-value">${formatValue(currentStorageData[key])}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                cardsContainer.appendChild(card);
+                
+                // 延迟显示内容区域动画
+                setTimeout(() => {
+                    const content = card.querySelector('.card-content');
+                    content.classList.add('show');
+                }, 500 + index * 50);
+            });
+        }
+        
+        // 切换卡片展开/收起
+        function toggleCard(header) {
+            const card = header.parentElement;
+            const content = card.querySelector('.card-content');
+            
+            if (content.style.maxHeight) {
+                content.style.maxHeight = null;
+            } else {
+                content.style.maxHeight = content.scrollHeight + 'px';
+            }
+        }
+        
+        // 删除键
+        function deleteKey(key, event) {
+            event.stopPropagation();
+            
+            if (confirm(`确定要删除键 "${key}" 吗？此操作不可撤销！`)) {
+                try {
+                    localStorage.removeItem(key);
+                    delete currentStorageData[key];
+                    
+                    // 添加淡出动画
+                    const card = document.querySelector(`.card[data-key="${key}"]`);
+                    if (card) {
+                        card.classList.add('fade-out');
+                        setTimeout(() => card.remove(), 300);
+                    }
+                    
+                    // 如果没有数据了，显示提示
+                    if (Object.keys(currentStorageData).length === 0) {
+                        document.getElementById('cardsContainer').innerHTML = 
+                            '<div class="no-data fade-in">当前没有LocalStorage数据</div>';
+                    }
+                } catch (e) {
+                    showError(`删除键 "${key}" 时出错: ${e.message}`);
+                }
+            }
+        }
+        
+        // 编辑键值
+        function editKeyValue(key, event) {
+            event.stopPropagation();
+            
+            const card = event.target.closest('.card');
+            const keyItem = card.querySelector('.key-item');
+            
+            keyItem.innerHTML = `
+                <div class="key-header">
+                    <span class="key-name">${key}</span>
+                </div>
+                <textarea class="key-value">${currentStorageData[key]}</textarea>
+                <div class="key-actions">
+                    <button class="save-btn" onclick="saveKeyValue('${key}', event)">
+                        <i class="fas fa-save"></i> 保存
+                    </button>
+                    <button class="cancel-btn" onclick="cancelEdit('${key}', event)">
+                        <i class="fas fa-times"></i> 取消
+                    </button>
+                </div>
+            `;
+            
+            // 调整卡片高度
+            const content = card.querySelector('.card-content');
+            content.style.maxHeight = content.scrollHeight + 'px';
+        }
+        
+        // 保存键值
+        function saveKeyValue(key, event) {
+            event.stopPropagation();
+            
+            const card = event.target.closest('.card');
+            const textarea = card.querySelector('.key-value');
+            const newValue = textarea.value;
+            
+            try {
+                // 更新LocalStorage
+                localStorage.setItem(key, newValue);
+                
+                // 更新内存中的数据
+                currentStorageData[key] = newValue;
+                
+                // 重新渲染卡片内容
+                const contentInner = card.querySelector('.card-content-inner');
+                contentInner.innerHTML = `
+                    <div class="key-item">
+                        <div class="key-header">
+                            <span class="key-name">${key}</span>
+                            <div class="key-actions">
+                                <button class="edit-btn" onclick="editKeyValue('${key}', event)">
+                                    <i class="fas fa-edit"></i> 编辑
+                                </button>
+                            </div>
+                        </div>
+                        <div class="key-value">${formatValue(newValue)}</div>
+                    </div>
+                `;
+                
+                // 调整卡片高度
+                card.querySelector('.card-content').style.maxHeight = 
+                    card.querySelector('.card-content').scrollHeight + 'px';
+            } catch (e) {
+                showError(`保存键 "${key}" 时出错: ${e.message}`);
+            }
+        }
+        
+        // 取消编辑
+        function cancelEdit(key, event) {
+            event.stopPropagation();
+            
+            const card = event.target.closest('.card');
+            const contentInner = card.querySelector('.card-content-inner');
+            
+            contentInner.innerHTML = `
+                <div class="key-item">
+                    <div class="key-header">
+                        <span class="key-name">${key}</span>
+                        <div class="key-actions">
+                            <button class="edit-btn" onclick="editKeyValue('${key}', event)">
+                                <i class="fas fa-edit"></i> 编辑
+                            </button>
+                        </div>
+                    </div>
+                    <div class="key-value">${formatValue(currentStorageData[key])}</div>
+                </div>
+            `;
+            
+            // 调整卡片高度
+            card.querySelector('.card-content').style.maxHeight = 
+                card.querySelector('.card-content').scrollHeight + 'px';
+        }
+        
+        // 格式化显示值
+        function formatValue(value) {
+            try {
+                const parsed = JSON.parse(value);
+                return JSON.stringify(parsed, null, 2);
+            } catch (e) {
+                return value;
+            }
+        }
+        
+        // 格式化字节大小
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // 页面加载时自动扫描
+        window.onload = scanLocalStorage;
+    </script>
+</body>
+</html>
