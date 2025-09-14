@@ -3,151 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LocalStorage卡片管理器</title>
+    <title>NR- LocalStorage</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #3498db;
-            --danger-color: #e74c3c;
-            --success-color: #27ae60;
-            --warning-color: #f39c12;
+            --primary-color: rgba(52, 152, 219, 0.8);
+            --success-color: rgba(46, 204, 113, 0.8);
+            --danger-color: rgba(231, 76, 60, 0.8);
+            --warning-color: rgba(243, 156, 18, 0.8);
             --dark-color: #2c3e50;
             --light-color: #ecf0f1;
-            --transition-speed: 0.35s;
-            --easing: cubic-bezier(0.25, 0.8, 0.25, 1);
+            --transition-speed: 0.3s;
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Roboto', sans-serif;
             max-width: 900px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f8f9fa;
-            color: #333;
-            transition: background-color 0.5s ease;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
         }
         
         .container {
-            background: white;
+            background: rgba(255, 255, 255, 0.85);
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            transition: all var(--transition-speed) var(--easing);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
         
         h1 {
             color: var(--dark-color);
             text-align: center;
             margin-bottom: 30px;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 2.2rem;
-            opacity: 0;
-            transform: translateY(-20px);
-            animation: fadeInDown 0.5s var(--easing) forwards;
-        }
-        
-        @keyframes fadeInDown {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
         
         .button-group {
             display: flex;
             justify-content: center;
             gap: 15px;
-            margin: 25px 0;
-            opacity: 0;
-            transform: translateY(20px);
-            animation: fadeInUp 0.5s var(--easing) forwards;
-            animation-delay: 0.2s;
-        }
-        
-        @keyframes fadeInUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            margin: 30px 0;
+            flex-wrap: wrap;
         }
         
         .action-btn {
             border: none;
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 12px 24px;
             cursor: pointer;
             font-size: 16px;
             font-weight: 500;
-            transition: all 0.3s var(--easing);
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             min-width: 180px;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
         
-        .action-btn::after {
+        .action-btn::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255,255,255,0.2);
-            transform: translateX(-100%);
-            transition: transform 0.6s ease;
-        }
-        
-        .action-btn:hover::after {
-            transform: translateX(0);
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%);
+            opacity: 0.5;
+            z-index: -1;
         }
         
         .scan-btn {
-            background-color: var(--primary-color);
-            color: white;
+            background: linear-gradient(135deg, var(--primary-color) 0%, rgba(52, 152, 219, 0.6) 100%);
         }
         
-        .scan-btn:hover {
-            background-color: #2980b9;
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        .create-btn {
+            background: linear-gradient(135deg, var(--success-color) 0%, rgba(46, 204, 113, 0.6) 100%);
         }
         
         .clear-all-btn {
-            background-color: var(--danger-color);
-            color: white;
+            background: linear-gradient(135deg, var(--danger-color) 0%, rgba(231, 76, 60, 0.6) 100%);
         }
         
-        .clear-all-btn:hover {
-            background-color: #c0392b;
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 4px 8px rgba(231, 76, 60, 0.3);
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .action-btn:active {
+            transform: translateY(0);
+        }
+        
+        .action-btn i {
+            margin-right: 8px;
         }
         
         .card {
             margin-bottom: 20px;
-            border: 1px solid rgba(0,0,0,0.08);
-            border-radius: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
             overflow: hidden;
-            background-color: white;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            transition: all var(--transition-speed) var(--easing);
-            opacity: 0;
-            transform: translateY(20px) scale(0.98);
-            animation: cardEntrance 0.5s var(--easing) forwards;
-        }
-        
-        @keyframes cardEntrance {
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-        
-        .card:hover {
-            transform: translateY(-3px) scale(1.01);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            transition: all var(--transition-speed) ease;
+            will-change: transform, opacity;
         }
         
         .card-header {
@@ -155,24 +123,21 @@
             justify-content: space-between;
             align-items: center;
             padding: 16px 20px;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+            background: linear-gradient(135deg, rgba(245, 247, 250, 0.9) 0%, rgba(228, 232, 235, 0.9) 100%);
             cursor: pointer;
-            transition: all var(--transition-speed) var(--easing);
-            overflow-x: auto;
-            white-space: nowrap;
+            transition: all var(--transition-speed) ease;
         }
         
         .card-header:hover {
-            background: linear-gradient(135deg, #e4e8eb 0%, #d5d9dc 100%);
+            background: linear-gradient(135deg, rgba(228, 232, 235, 0.95) 0%, rgba(213, 217, 220, 0.95) 100%);
         }
         
         .card-title {
-            font-weight: 600;
+            font-weight: 500;
             color: var(--dark-color);
             display: flex;
             align-items: center;
             min-width: 0;
-            flex-shrink: 0;
         }
         
         .key-name {
@@ -180,18 +145,13 @@
             overflow: hidden;
             text-overflow: ellipsis;
             max-width: 300px;
-            display: inline-block;
-            padding-right: 10px;
-            transition: all 0.2s ease;
         }
         
         .key-size {
             font-size: 13px;
             color: #7f8c8d;
             margin-left: 8px;
-            white-space: nowrap;
-            flex-shrink: 0;
-            background: rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.05);
             padding: 2px 8px;
             border-radius: 10px;
         }
@@ -199,29 +159,23 @@
         .card-actions {
             display: flex;
             gap: 10px;
-            margin-left: 15px;
-            flex-shrink: 0;
         }
         
         .delete-btn {
+            background: rgba(231, 76, 60, 0.8);
+            color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             padding: 6px 12px;
             cursor: pointer;
             font-size: 13px;
-            display: flex;
-            align-items: center;
-            white-space: nowrap;
-            transition: all 0.2s var(--easing);
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
             font-weight: 500;
-            background-color: var(--danger-color);
-            color: white;
-            box-shadow: none;
-            outline: none;
         }
         
         .delete-btn:hover {
-            background-color: #c0392b;
+            background: rgba(192, 57, 43, 0.9);
             transform: scale(1.05);
         }
         
@@ -229,33 +183,19 @@
             padding: 0;
             max-height: 0;
             overflow: hidden;
-            transition: max-height var(--transition-speed) var(--easing);
+            transition: max-height var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .card-content-inner {
             padding: 20px;
-            opacity: 0;
-            transform: translateY(-10px);
-            transition: all var(--transition-speed) var(--easing);
-        }
-        
-        .card-content.show .card-content-inner {
-            opacity: 1;
-            transform: translateY(0);
         }
         
         .key-item {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             padding: 15px;
-            background-color: #f8fafc;
+            background: rgba(248, 249, 250, 0.8);
             border-radius: 8px;
-            border: 1px solid rgba(0,0,0,0.05);
-            transition: all var(--transition-speed) var(--easing);
-        }
-        
-        .key-item:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            transform: translateY(-2px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
         }
         
         .key-header {
@@ -265,23 +205,26 @@
         }
         
         .key-value {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid rgba(0,0,0,0.1);
-            border-radius: 6px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            margin-bottom: 12px;
-            min-height: 80px;
-            white-space: pre-wrap;
-            background-color: white;
-            transition: all var(--transition-speed) var(--easing);
-        }
-        
-        .key-value:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-            outline: none;
-        }
+    width: 80%;
+    padding: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    font-family: 'Roboto Mono', monospace;
+    min-height: 80px;
+    white-space: pre-wrap;  /* 确保保留空白符但自动换行 */
+    word-wrap: break-word;  /* 允许长单词换行 */
+    overflow-wrap: break-word; /* 现代浏览器推荐使用 */
+    background: rgba(255, 255, 255, 0.9);
+    margin-bottom: 12px;
+}
+
+/* 确保编辑时的textarea也有相同的换行行为 */
+.key-value textarea {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
         
         .key-actions {
             display: flex;
@@ -296,179 +239,440 @@
             font-size: 14px;
             display: flex;
             align-items: center;
-            white-space: nowrap;
-            transition: all 0.2s var(--easing);
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
             font-weight: 500;
-            box-shadow: none;
-            outline: none;
         }
         
         .edit-btn {
-            background-color: var(--warning-color);
+            background: rgba(243, 156, 18, 0.8);
             color: white;
         }
         
         .save-btn {
-            background-color: var(--success-color);
+            background: rgba(39, 174, 96, 0.8);
             color: white;
         }
         
         .cancel-btn {
-            background-color: var(--danger-color);
+            background: rgba(231, 76, 60, 0.8);
             color: white;
-        }
-        
-        .edit-btn:hover, .save-btn:hover, .cancel-btn:hover {
-            transform: scale(1.05);
         }
         
         .loading {
             text-align: center;
-            padding: 30px;
+            padding: 20px;
             color: #7f8c8d;
-            font-size: 18px;
-            opacity: 0;
-            animation: fadeIn 0.5s var(--easing) forwards;
         }
         
         .error-message {
             color: white;
             margin: 15px 0;
             padding: 15px;
-            background-color: var(--danger-color);
+            background: rgba(231, 76, 60, 0.8);
             border-radius: 8px;
             font-weight: 500;
-            opacity: 0;
-            transform: translateY(-10px);
-            transition: all var(--transition-speed) var(--easing);
-        }
-        
-        .error-message.show {
-            opacity: 1;
-            transform: translateY(0);
         }
         
         .no-data {
             text-align: center;
             padding: 30px;
             color: #7f8c8d;
-            font-size: 16px;
-            opacity: 0;
-            animation: fadeIn 0.5s var(--easing) forwards;
         }
         
-        @keyframes fadeIn {
-            to {
-                opacity: 1;
-            }
-        }
-        
-        .fade-out {
-            animation: fadeOut var(--transition-speed) var(--easing) forwards;
-        }
-        
-        @keyframes fadeOut {
-            to {
-                opacity: 0;
-                transform: translateY(-20px) scale(0.95);
-            }
-        }
-        
-        .confirmation-dialog {
+        /* 删除确认对话框 */
+        .delete-confirm-dialog {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             opacity: 0;
             pointer-events: none;
-            transition: opacity var(--transition-speed) var(--easing);
+            transition: opacity var(--transition-speed) ease;
+            backdrop-filter: blur(5px);
         }
         
-        .confirmation-dialog.show {
+        .delete-confirm-dialog.show {
             opacity: 1;
             pointer-events: all;
         }
         
-        .dialog-content {
-            background-color: white;
+        .delete-dialog-content {
+            background: rgba(255, 255, 255, 0.95);
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            max-width: 500px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
             width: 90%;
-            transform: scale(0.9);
-            transition: transform var(--transition-speed) var(--easing);
+            transform: scale(0.95);
+            transition: all var(--transition-speed) cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            position: relative;
+            overflow: hidden;
         }
         
-        .confirmation-dialog.show .dialog-content {
+        .delete-confirm-dialog.show .delete-dialog-content {
             transform: scale(1);
         }
         
-        .dialog-buttons {
+        /* 细节1：对话框添加红色光晕背景 */
+        .delete-dialog-content::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(231, 76, 60, 0.1) 0%, transparent 70%);
+            z-index: -1;
+        }
+        
+        /* 细节2：对话框添加微妙的动画效果 */
+        .delete-dialog-title {
+            color: #e74c3c;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 1.4rem;
+        }
+        
+        .delete-dialog-message {
+            color: #555;
+            margin-bottom: 25px;
+            text-align: center;
+            line-height: 1.5;
+        }
+        
+        .delete-dialog-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .delete-dialog-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .delete-dialog-btn-cancel {
+            background: rgba(189, 195, 199, 0.8);
+            color: var(--dark-color);
+        }
+        
+        /* 细节3：确认按钮使用淡红色 */
+        .delete-dialog-btn-confirm {
+            background: rgba(231, 76, 60, 0.6);
+            color: white;
+        }
+        
+        /* 细节4：按钮添加波纹效果 */
+        .delete-dialog-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%, -50%);
+            transform-origin: 50% 50%;
+        }
+        
+        .delete-dialog-btn:active::after {
+            animation: ripple 0.6s ease-out;
+        }
+        
+        @keyframes ripple {
+            0% {
+                transform: scale(0, 0);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(20, 20);
+                opacity: 0;
+            }
+        }
+        
+        /* 细节5：按钮悬停效果 */
+        .delete-dialog-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+        
+        .delete-dialog-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* 清除所有确认对话框 */
+        .clear-all-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--transition-speed) ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .clear-all-dialog.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .clear-all-dialog-content {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            width: 90%;
+            transform: scale(0.95);
+            transition: all var(--transition-speed) cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        
+        .clear-all-dialog.show .clear-all-dialog-content {
+            transform: scale(1);
+        }
+        
+        .clear-all-dialog-title {
+            color: #e74c3c;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 1.4rem;
+        }
+        
+        .clear-all-dialog-message {
+            color: #555;
+            margin-bottom: 25px;
+            text-align: center;
+            line-height: 1.5;
+        }
+        
+        .clear-all-dialog-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .clear-all-dialog-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .clear-all-dialog-btn-cancel {
+            background: rgba(189, 195, 199, 0.8);
+            color: var(--dark-color);
+        }
+        
+        .clear-all-dialog-btn-confirm {
+            background: rgba(231, 76, 60, 0.6);
+            color: white;
+        }
+        
+        .clear-all-dialog-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+        }
+        
+        .clear-all-dialog-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* 创建数据对话框 */
+        .create-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--transition-speed) ease;
+            backdrop-filter: blur(5px);
+        }
+        
+        .create-dialog.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .create-dialog-content {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 90%;
+            transform: scale(0.95);
+            transition: all var(--transition-speed) cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        
+        .create-dialog.show .create-dialog-content {
+            transform: scale(1);
+        }
+        
+        .create-dialog-title {
+            color: var(--dark-color);
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 1.4rem;
+        }
+        
+        .create-dialog-form {
+            margin: 20px 0;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            outline: none;
+        }
+        
+        .create-dialog-buttons {
             display: flex;
             justify-content: flex-end;
             gap: 15px;
             margin-top: 20px;
         }
         
-        .dialog-btn {
-            padding: 10px 20px;
+        .create-dialog-btn {
+            padding: 10px 25px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: 500;
-            transition: all 0.2s var(--easing);
-            box-shadow: none;
-            outline: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
         }
         
-        .dialog-btn-cancel {
-            background-color: #bdc3c7;
-            color: #2c3e50;
+        .create-dialog-btn-cancel {
+            background: rgba(189, 195, 199, 0.8);
+            color: var(--dark-color);
         }
         
-        .dialog-btn-confirm {
-            background-color: var(--danger-color);
+        .create-dialog-btn-confirm {
+            background: rgba(46, 204, 113, 0.8);
             color: white;
         }
         
-        .dialog-btn-cancel:hover, .dialog-btn-confirm:hover {
-            transform: scale(1.05);
+        .create-dialog-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
         }
         
-        /* 波纹动画效果 */
-        .ripple {
-            position: absolute;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.4);
-            transform: scale(0);
-            animation: ripple var(--transition-speed) var(--easing);
-            pointer-events: none;
+        .create-dialog-btn:active {
+            transform: translateY(0);
         }
         
-        @keyframes ripple {
-            to {
-                transform: scale(4);
+        /* 动画效果 */
+        @keyframes fadeInUp {
+            from {
                 opacity: 0;
+                transform: translateY(20px);
             }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeOutDown {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeInUp 0.5s ease forwards;
+        }
+        
+        .fade-out {
+            animation: fadeOutDown 0.5s ease forwards;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>LocalStorage卡片管理器</h1>
+        <h1>网页存储管理器</h1>
         
         <div class="button-group">
             <button class="action-btn scan-btn" onclick="scanLocalStorage()">
                 <i class="fas fa-sync-alt"></i> 扫描LocalStorage
             </button>
-            <button class="action-btn clear-all-btn" onclick="showClearAllConfirmation()">
+            <button class="action-btn create-btn" onclick="showCreateDialog()">
+                <i class="fas fa-plus"></i> 新建数据
+            </button>
+            <button class="action-btn clear-all-btn" onclick="showClearAllDialog()">
                 <i class="fas fa-trash-alt"></i> 一键清除所有数据
             </button>
         </div>
@@ -477,21 +681,54 @@
             <i class="fas fa-spinner fa-spin"></i> 正在扫描LocalStorage，请稍候...
         </div>
         
-        <div id="errorMessage" class="error-message"></div>
+        <div id="errorMessage" class="error-message" style="display: none;"></div>
         
         <div id="cardsContainer">
             <div class="no-data">点击"扫描LocalStorage"按钮查看数据</div>
         </div>
     </div>
 
-    <!-- 确认对话框 -->
-    <div id="confirmationDialog" class="confirmation-dialog">
-        <div class="dialog-content">
-            <h3>确认清除所有数据</h3>
-            <p>您确定要清除所有LocalStorage数据吗？此操作不可撤销！</p>
-            <div class="dialog-buttons">
-                <button class="dialog-btn dialog-btn-cancel" onclick="hideClearAllConfirmation()">取消</button>
-                <button class="dialog-btn dialog-btn-confirm" onclick="clearAllData()">确认清除</button>
+    <!-- 创建数据对话框 -->
+    <div id="createDialog" class="create-dialog">
+        <div class="create-dialog-content">
+            <h3 class="create-dialog-title">新建LocalStorage数据</h3>
+            <div class="create-dialog-form">
+                <div class="form-group">
+                    <label for="newKeyName">键名：</label>
+                    <input type="text" id="newKeyName" placeholder="输入键名">
+                </div>
+                <div class="form-group">
+                    <label for="newKeyValue">值：</label>
+                    <textarea id="newKeyValue" placeholder="输入值内容"></textarea>
+                </div>
+            </div>
+            <div class="create-dialog-buttons">
+                <button class="create-dialog-btn create-dialog-btn-cancel" onclick="hideCreateDialog()">取消</button>
+                <button class="create-dialog-btn create-dialog-btn-confirm" onclick="createNewItem()">确认创建</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认对话框 -->
+    <div id="deleteConfirmDialog" class="delete-confirm-dialog">
+        <div class="delete-dialog-content">
+            <h3 class="delete-dialog-title">确认删除</h3>
+            <p class="delete-dialog-message" id="deleteDialogMessage"></p>
+            <div class="delete-dialog-buttons">
+                <button class="delete-dialog-btn delete-dialog-btn-cancel" onclick="hideDeleteConfirmDialog()">取消</button>
+                <button class="delete-dialog-btn delete-dialog-btn-confirm" onclick="confirmDeleteKey()">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 清除所有确认对话框 -->
+    <div id="clearAllDialog" class="clear-all-dialog">
+        <div class="clear-all-dialog-content">
+            <h3 class="clear-all-dialog-title">确认清除所有数据</h3>
+            <p class="clear-all-dialog-message">您确定要清除所有LocalStorage数据吗？此操作不可撤销！</p>
+            <div class="clear-all-dialog-buttons">
+                <button class="clear-all-dialog-btn clear-all-dialog-btn-cancel" onclick="hideClearAllDialog()">取消</button>
+                <button class="clear-all-dialog-btn clear-all-dialog-btn-confirm" onclick="clearAllData()">确认清除</button>
             </div>
         </div>
     </div>
@@ -502,54 +739,98 @@
     <script>
         // 存储当前域名的LocalStorage数据
         let currentStorageData = {};
+        let currentDeleteKey = null;
         
-        // 添加波纹效果
-        function createRipple(event) {
-            const button = event.currentTarget;
-            const rect = button.getBoundingClientRect();
-            const size = Math.max(rect.width, rect.height);
-            const x = event.clientX - rect.left - size / 2;
-            const y = event.clientY - rect.top - size / 2;
-            
-            const ripple = document.createElement('span');
-            ripple.className = 'ripple';
-            ripple.style.width = ripple.style.height = `${size}px`;
-            ripple.style.left = `${x}px`;
-            ripple.style.top = `${y}px`;
-            
-            button.appendChild(ripple);
-            
-            setTimeout(() => ripple.remove(), 1000);
+        // 显示创建对话框
+        function showCreateDialog() {
+            document.getElementById('createDialog').classList.add('show');
+            document.getElementById('newKeyName').focus();
         }
         
-        // 为所有按钮添加波纹效果
-        document.querySelectorAll('button').forEach(button => {
-            button.addEventListener('click', createRipple);
-        });
-        
-        // 显示错误消息
-        function showError(message) {
-            const errorEl = document.getElementById('errorMessage');
-            errorEl.textContent = message;
-            errorEl.classList.add('show');
-            setTimeout(() => errorEl.classList.remove('show'), 3000);
+        // 隐藏创建对话框
+        function hideCreateDialog() {
+            document.getElementById('createDialog').classList.remove('show');
+            document.getElementById('newKeyName').value = '';
+            document.getElementById('newKeyValue').value = '';
         }
         
-        // 显示确认对话框
-        function showClearAllConfirmation() {
-            const dialog = document.getElementById('confirmationDialog');
+        // 创建新数据项
+        function createNewItem() {
+            const key = document.getElementById('newKeyName').value.trim();
+            const value = document.getElementById('newKeyValue').value;
+            
+            if (!key) {
+                showError('请输入有效的键名');
+                return;
+            }
+            
+            try {
+                localStorage.setItem(key, value);
+                currentStorageData[key] = value;
+                hideCreateDialog();
+                scanLocalStorage(); // 刷新显示
+            } catch (e) {
+                showError(`创建数据时出错: ${e.message}`);
+            }
+        }
+        
+        // 显示删除确认对话框
+        function showDeleteConfirmDialog(key) {
+            currentDeleteKey = key;
+            const dialog = document.getElementById('deleteConfirmDialog');
+            const message = document.getElementById('deleteDialogMessage');
+            message.textContent = `您确定要删除键 "${key}" 吗？此操作不可撤销！`;
             dialog.classList.add('show');
         }
         
-        // 隐藏确认对话框
-        function hideClearAllConfirmation() {
-            const dialog = document.getElementById('confirmationDialog');
-            dialog.classList.remove('show');
+        // 隐藏删除确认对话框
+        function hideDeleteConfirmDialog() {
+            document.getElementById('deleteConfirmDialog').classList.remove('show');
+            currentDeleteKey = null;
+        }
+        
+        // 确认删除键
+        function confirmDeleteKey() {
+            if (!currentDeleteKey) return;
+            
+            try {
+                localStorage.removeItem(currentDeleteKey);
+                delete currentStorageData[currentDeleteKey];
+                
+                // 添加淡出动画
+                const card = document.querySelector(`.card .key-name[title="${currentDeleteKey}"]`).closest('.card');
+                card.classList.add('fade-out');
+                
+                // 动画完成后移除卡片
+                setTimeout(() => {
+                    card.remove();
+                    
+                    // 如果没有数据了，显示提示
+                    if (Object.keys(currentStorageData).length === 0) {
+                        document.getElementById('cardsContainer').innerHTML = 
+                            '<div class="no-data">当前没有LocalStorage数据</div>';
+                    }
+                }, 500);
+                
+                hideDeleteConfirmDialog();
+            } catch (e) {
+                showError(`删除键 "${currentDeleteKey}" 时出错: ${e.message}`);
+            }
+        }
+        
+        // 显示清除确认对话框
+        function showClearAllDialog() {
+            document.getElementById('clearAllDialog').classList.add('show');
+        }
+        
+        // 隐藏清除确认对话框
+        function hideClearAllDialog() {
+            document.getElementById('clearAllDialog').classList.remove('show');
         }
         
         // 清除所有数据
         function clearAllData() {
-            hideClearAllConfirmation();
+            hideClearAllDialog();
             
             try {
                 localStorage.clear();
@@ -564,17 +845,25 @@
                 // 动画完成后移除卡片
                 setTimeout(() => {
                     document.getElementById('cardsContainer').innerHTML = 
-                        '<div class="no-data fade-in">当前没有LocalStorage数据</div>';
-                }, 300);
+                        '<div class="no-data">当前没有LocalStorage数据</div>';
+                }, 500);
             } catch (e) {
                 showError(`清除所有数据时出错: ${e.message}`);
             }
         }
         
+        // 显示错误消息
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            setTimeout(() => errorEl.style.display = 'none', 3000);
+        }
+        
         // 扫描LocalStorage
         function scanLocalStorage() {
             document.getElementById('loading').style.display = 'block';
-            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('errorMessage').style.display = 'none';
             document.getElementById('cardsContainer').innerHTML = '';
             
             setTimeout(() => {
@@ -593,7 +882,7 @@
                 } finally {
                     document.getElementById('loading').style.display = 'none';
                 }
-            }, 300); // 添加轻微延迟让加载动画更自然
+            }, 300);
         }
         
         // 显示卡片
@@ -601,7 +890,7 @@
             const cardsContainer = document.getElementById('cardsContainer');
             
             if (Object.keys(currentStorageData).length === 0) {
-                cardsContainer.innerHTML = '<div class="no-data fade-in">当前没有LocalStorage数据</div>';
+                cardsContainer.innerHTML = '<div class="no-data">当前没有LocalStorage数据</div>';
                 return;
             }
             
@@ -610,8 +899,7 @@
             // 为每个键创建卡片
             Object.keys(currentStorageData).forEach((key, index) => {
                 const card = document.createElement('div');
-                card.className = 'card';
-                card.dataset.key = key;
+                card.className = 'card fade-in';
                 card.style.animationDelay = `${index * 0.05}s`;
                 
                 // 计算值的大小
@@ -621,10 +909,10 @@
                     <div class="card-header" onclick="toggleCard(this)">
                         <div class="card-title">
                             <span class="key-name" title="${key}">${key}</span>
-                            <span class="key-size">(${formatBytes(valueSize)})</span>
+                            <span class="key-size">${formatBytes(valueSize)}</span>
                         </div>
                         <div class="card-actions">
-                            <button class="delete-btn" onclick="deleteKey('${key}', event)">
+                            <button class="delete-btn" onclick="showDeleteConfirmDialog('${key}')">
                                 <i class="fas fa-trash"></i> 删除
                             </button>
                         </div>
@@ -647,12 +935,6 @@
                 `;
                 
                 cardsContainer.appendChild(card);
-                
-                // 延迟显示内容区域动画
-                setTimeout(() => {
-                    const content = card.querySelector('.card-content');
-                    content.classList.add('show');
-                }, 500 + index * 50);
             });
         }
         
@@ -665,33 +947,6 @@
                 content.style.maxHeight = null;
             } else {
                 content.style.maxHeight = content.scrollHeight + 'px';
-            }
-        }
-        
-        // 删除键
-        function deleteKey(key, event) {
-            event.stopPropagation();
-            
-            if (confirm(`确定要删除键 "${key}" 吗？此操作不可撤销！`)) {
-                try {
-                    localStorage.removeItem(key);
-                    delete currentStorageData[key];
-                    
-                    // 添加淡出动画
-                    const card = document.querySelector(`.card[data-key="${key}"]`);
-                    if (card) {
-                        card.classList.add('fade-out');
-                        setTimeout(() => card.remove(), 300);
-                    }
-                    
-                    // 如果没有数据了，显示提示
-                    if (Object.keys(currentStorageData).length === 0) {
-                        document.getElementById('cardsContainer').innerHTML = 
-                            '<div class="no-data fade-in">当前没有LocalStorage数据</div>';
-                    }
-                } catch (e) {
-                    showError(`删除键 "${key}" 时出错: ${e.message}`);
-                }
             }
         }
         
