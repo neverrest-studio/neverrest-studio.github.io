@@ -3,168 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>静态托管文本互传（无405）</title>
+    <title>无IP文本互传（共享码版）</title>
     <style>
-        body { max-width: 550px; margin: 20px auto; padding: 0 15px; font-family: sans-serif; }
-        .section { margin: 25px 0; }
-        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        body { max-width: 500px; margin: 20px auto; padding: 0 15px; font-family: sans-serif; }
+        .container { margin: 25px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        h3 { margin-top: 0; color: #333; }
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #eee; border-radius: 6px; box-sizing: border-box; }
         textarea { height: 140px; resize: none; }
-        button { padding: 12px 20px; background: #2563EB; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
-        #receiveArea { background: #f8f8f8; }
-        .status { margin: 10px 0; font-weight: bold; }
-        .success { color: #059669; }
-        .error { color: #DC2626; }
+        .btn { width: 100%; padding: 12px; margin: 10px 0; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+        .btn:disabled { background: #bdc3c7; cursor: not-allowed; }
+        #receiveBox { background: #f8f9fa; }
+        .tip { color: #7f8c8d; font-size: 14px; margin: 5px 0; }
+        .success { color: #2ecc71; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>同一网络文本互传</h1>
+    <h1>无IP文本互传</h1>
 
-    <!-- 1. 共享密钥（两台设备输同一个，比如“myroom123”） -->
-    <div class="section">
-        <h3>1. 设置共享密钥</h3>
-        <input type="text" id="shareKey" placeholder="输入共享密钥（两台设备必须一样，比如“home567”）">
-        <div class="status" id="keyStatus">未设置密钥</div>
+    <!-- 1. 共享码设置（唯一关键步骤） -->
+    <div class="container">
+        <h3>1. 设置共享码</h3>
+        <input type="text" id="shareCode" placeholder="输入任意共享码（两台设备必须一样，如“abc123”）">
+        <button class="btn" id="joinBtn">加入共享</button>
+        <div class="tip" id="status">未加入共享 | 提示：两台设备输相同共享码即可</div>
     </div>
 
     <!-- 2. 发送文本 -->
-    <div class="section">
+    <div class="container">
         <h3>2. 发送文本</h3>
-        <textarea id="sendText" placeholder="输入要发送的内容..."></textarea>
-        <button id="sendBtn" disabled>发送</button>
+        <textarea id="sendText" placeholder="输入要发送的内容..." disabled></textarea>
+        <button class="btn" id="sendBtn" disabled>发送</button>
     </div>
 
     <!-- 3. 接收文本 -->
-    <div class="section" id="receiveArea">
-        <h3>3. 接收文本（自动刷新）</h3>
+    <div class="container" id="receiveBox">
+        <h3>3. 接收文本</h3>
         <textarea id="receiveText" readonly placeholder="等待接收内容..."></textarea>
-        <br>
-        <button id="refreshBtn" disabled>手动刷新</button>
-        <button id="clearBtn" disabled>清空内容</button>
+        <button class="btn" style="background: #e67e22;" id="clearBtn" disabled>清空接收区</button>
     </div>
 
     <script>
-        // 核心：用免费在线文本存储API（无需注册，支持静态页面调用）
-        const API_BASE = 'https://api.paste.gg/v1/pastes';
-        let currentPasteId = ''; // 存储文本的唯一ID（用共享密钥生成）
+        // 核心逻辑：用“共享码+localStorage广播”，同一网络自动匹配
+        let currentCode = '';
+        let broadcastInterval; // 广播/监听定时器
 
         // DOM元素
-        const shareKeyInput = document.getElementById('shareKey');
-        const keyStatus = document.getElementById('keyStatus');
-        const sendTextElem = document.getElementById('sendText');
+        const shareCodeInput = document.getElementById('shareCode');
+        const joinBtn = document.getElementById('joinBtn');
+        const status = document.getElementById('status');
+        const sendText = document.getElementById('sendText');
         const sendBtn = document.getElementById('sendBtn');
-        const receiveTextElem = document.getElementById('receiveText');
-        const refreshBtn = document.getElementById('refreshBtn');
+        const receiveText = document.getElementById('receiveText');
         const clearBtn = document.getElementById('clearBtn');
 
-        // 1. 共享密钥输入监听（输入后启用功能）
-        shareKeyInput.addEventListener('input', () => {
-            const key = shareKeyInput.value.trim();
-            const hasKey = key.length >= 3;
+        // 1. 加入共享（输入共享码后启用功能）
+        joinBtn.addEventListener('click', () => {
+            currentCode = shareCodeInput.value.trim();
+            if (!currentCode) {
+                alert('请输入共享码（至少2个字符）');
+                return;
+            }
 
-            // 生成唯一PasteID（用密钥哈希，确保同一密钥对应同一存储）
-            currentPasteId = hasKey ? btoa(key).slice(0, 10) : '';
-            
-            // 启用/禁用按钮
-            sendBtn.disabled = !hasKey;
-            refreshBtn.disabled = !hasKey;
-            clearBtn.disabled = !hasKey;
-            
-            // 更新状态
-            keyStatus.textContent = hasKey ? `已设置密钥：${key}` : '未设置密钥（至少3个字符）';
-            keyStatus.className = hasKey ? 'status success' : 'status error';
+            // 启用发送/清空按钮
+            sendText.disabled = false;
+            sendBtn.disabled = false;
+            clearBtn.disabled = false;
+            status.innerHTML = `<span class="success">已加入共享：${currentCode}</span> | 可发送/接收文本`;
 
-            // 有密钥时自动刷新一次
-            if (hasKey) getText();
+            // 启动“广播+监听”：每1秒同步一次文本
+            startBroadcastAndListen();
         });
 
-        // 2. 发送文本（调用API保存）
-        sendBtn.addEventListener('click', async () => {
-            const key = shareKeyInput.value.trim();
-            const text = sendTextElem.value.trim();
-            if (!text) return alert('请输入要发送的内容');
+        // 2. 广播自己的文本 + 监听对方的文本
+        function startBroadcastAndListen() {
+            // 清除旧定时器（避免重复）
+            if (broadcastInterval) clearInterval(broadcastInterval);
 
-            // 构造要保存的内容（带时间戳）
-            const time = new Date().toLocaleTimeString();
-            const newContent = `[${time}] 发送：\n${text}\n\n` + receiveTextElem.value;
-
-            try {
-                // 先查是否已有存储，有则更新，没有则创建
-                const existingPaste = await fetch(`${API_BASE}/${currentPasteId}`).then(res => res.json());
-                if (existingPaste.success) {
-                    // 更新已有存储
-                    await fetch(`${API_BASE}/${currentPasteId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            name: `TextShare_${key}`,
-                            files: [{ name: 'shared.txt', content: { format: 'text', value: newContent } }]
-                        })
-                    });
-                } else {
-                    // 创建新存储
-                    await fetch(API_BASE, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            name: `TextShare_${key}`,
-                            visibility: 'unlisted', // 仅知道ID的人可访问
-                            files: [{ name: 'shared.txt', content: { format: 'text', value: newContent } }]
-                        })
-                    });
+            broadcastInterval = setInterval(() => {
+                // 1. 广播：把自己的发送记录存到localStorage（用共享码当key）
+                const myText = receiveText.value;
+                if (myText) {
+                    localStorage.setItem(`share_${currentCode}`, myText);
                 }
 
-                // 发送成功，清空输入框并刷新接收区
-                sendTextElem.value = '';
-                getText();
-                alert('发送成功！');
-            } catch (err) {
-                alert('发送失败：' + err.message);
-            }
-        });
-
-        // 3. 获取文本（调用API读取）
-        async function getText() {
-            try {
-                const res = await fetch(`${API_BASE}/${currentPasteId}`);
-                const data = await res.json();
-                if (data.success && data.result.files.length > 0) {
-                    // 读取存储的文本
-                    const text = data.result.files[0].content.value;
-                    receiveTextElem.value = text || '暂无内容';
-                } else {
-                    receiveTextElem.value = '暂无内容';
+                // 2. 监听：读取对方存的文本，更新接收区
+                const peerText = localStorage.getItem(`share_${currentCode}`);
+                if (peerText && peerText !== receiveText.value) {
+                    receiveText.value = peerText;
+                    receiveText.scrollTop = receiveText.scrollHeight; // 滚动到底部
                 }
-            } catch (err) {
-                receiveTextElem.value = '刷新失败：' + err.message;
-            }
+            }, 1000); // 每秒同步一次，实时性足够
         }
 
-        // 4. 手动刷新
-        refreshBtn.addEventListener('click', getText);
+        // 3. 发送文本
+        sendBtn.addEventListener('click', () => {
+            const text = sendText.value.trim();
+            if (!text) return;
 
-        // 5. 清空内容
-        clearBtn.addEventListener('click', async () => {
-            if (!confirm('确定要清空所有内容吗？')) return;
-            try {
-                await fetch(`${API_BASE}/${currentPasteId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: `TextShare_${shareKeyInput.value.trim()}`,
-                        files: [{ name: 'shared.txt', content: { format: 'text', value: '' } }]
-                    })
-                });
-                receiveTextElem.value = '';
-                alert('清空成功！');
-            } catch (err) {
-                alert('清空失败：' + err.message);
-            }
+            // 拼接时间戳和文本，显示在接收区
+            const time = new Date().toLocaleTimeString();
+            const newContent = receiveText.value + `我(${time})：\n${text}\n\n`;
+            
+            // 更新接收区并广播
+            receiveText.value = newContent;
+            receiveText.scrollTop = receiveText.scrollHeight;
+            localStorage.setItem(`share_${currentCode}`, newContent);
+
+            // 清空输入框
+            sendText.value = '';
         });
 
-        // 自动刷新（每10秒一次）
-        setInterval(() => {
-            if (shareKeyInput.value.trim().length >= 3) getText();
-        }, 10000);
+        // 4. 清空接收区
+        clearBtn.addEventListener('click', () => {
+            receiveText.value = '';
+            localStorage.setItem(`share_${currentCode}`, '');
+        });
+
+        // 页面关闭时清除存储，避免残留
+        window.addEventListener('beforeunload', () => {
+            if (currentCode) {
+                localStorage.removeItem(`share_${currentCode}`);
+            }
+        });
     </script>
 </body>
 </html>
