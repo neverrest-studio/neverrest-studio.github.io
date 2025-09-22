@@ -1,1 +1,199 @@
-1
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>同一网络文本互传</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 0 20px; }
+        .container { margin: 20px 0; }
+        input, textarea, button { width: 100%; padding: 10px; margin: 5px 0; box-sizing: border-box; }
+        textarea { height: 150px; resize: none; }
+        button { background: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background: #45a049; }
+        #receiveArea { background: #f5f5f5; }
+        #codeDisplay { color: #d32f2f; font-weight: bold; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>同一网络文本互传</h1>
+
+    <!-- 连接控制区 -->
+    <div class="container">
+        <button id="createBtn">创建连接</button>
+        <button id="joinBtn">加入连接</button>
+        <div id="codeDisplay"></div>
+        <input type="text" id="codeInput" placeholder="输入连接码（加入方用）" style="display: none;">
+        <button id="confirmJoinBtn" style="display: none;">确认加入</button>
+    </div>
+
+    <!-- 文本发送区 -->
+    <div class="container">
+        <h3>发送文本</h3>
+        <textarea id="sendText" placeholder="输入要发送的文本..."></textarea>
+        <button id="sendBtn" disabled>发送</button>
+    </div>
+
+    <!-- 文本接收区 -->
+    <div class="container">
+        <h3>接收文本</h3>
+        <textarea id="receiveArea" readonly placeholder="等待接收文本..."></textarea>
+    </div>
+
+    <script>
+        // 核心变量
+        let peerConnection;
+        let dataChannel;
+        const iceServers = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' } // 公共STUN服务器，用于获取局域网内地址
+            ]
+        };
+        let isHost = false;
+        let connectionCode = '';
+
+        // DOM元素
+        const createBtn = document.getElementById('createBtn');
+        const joinBtn = document.getElementById('joinBtn');
+        const codeDisplay = document.getElementById('codeDisplay');
+        const codeInput = document.getElementById('codeInput');
+        const confirmJoinBtn = document.getElementById('confirmJoinBtn');
+        const sendText = document.getElementById('sendText');
+        const sendBtn = document.getElementById('sendBtn');
+        const receiveArea = document.getElementById('receiveArea');
+
+        // 创建连接（主机端）
+        createBtn.addEventListener('click', () => {
+            isHost = true;
+            peerConnection = new RTCPeerConnection(iceServers);
+            initDataChannel();
+            initPeerEvents();
+
+            // 生成简单连接码（基于时间戳，仅用于局域网内手动传递）
+            connectionCode = Math.floor(Date.now() / 1000).toString().slice(-6);
+            codeDisplay.textContent = `连接码：${connectionCode}（请告知加入方）`;
+            
+            // 创建offer
+            peerConnection.createOffer().then(offer => {
+                return peerConnection.setLocalDescription(offer);
+            }).catch(err => console.error('创建offer失败：', err));
+        });
+
+        // 加入连接（客户端）
+        joinBtn.addEventListener('click', () => {
+            codeInput.style.display = 'block';
+            confirmJoinBtn.style.display = 'block';
+        });
+
+        // 确认加入
+        confirmJoinBtn.addEventListener('click', () => {
+            const inputCode = codeInput.value.trim();
+            if (!inputCode) {
+                alert('请输入连接码');
+                return;
+            }
+            // 模拟连接码验证（实际局域网内可通过广播简化，此处为演示用手动输入）
+            connectionCode = inputCode;
+            isHost = false;
+            peerConnection = new RTCPeerConnection(iceServers);
+            initPeerEvents();
+
+            // 提示主机端输入客户端的连接码（演示用，实际可优化为自动发现）
+            alert('请让主机端在控制台输入你的连接码，完成连接协商');
+        });
+
+        // 初始化数据通道
+        function initDataChannel() {
+            dataChannel = peerConnection.createDataChannel('textChannel');
+            dataChannel.onmessage = e => {
+                receiveArea.value += `对方（${new Date().toLocaleTimeString()}）：\n${e.data}\n\n`;
+                receiveArea.scrollTop = receiveArea.scrollHeight;
+            };
+            dataChannel.onopen = () => {
+                sendBtn.disabled = false;
+                alert('连接成功！可开始发送文本');
+            };
+        }
+
+        // 初始化PeerConnection事件
+        function initPeerEvents() {
+            // 接收对方数据通道
+            peerConnection.ondatachannel = e => {
+                dataChannel = e.channel;
+                dataChannel.onmessage = e => {
+                    receiveArea.value += `对方（${new Date().toLocaleTimeString()}）：\n${e.data}\n\n`;
+                    receiveArea.scrollTop = receiveArea.scrollHeight;
+                };
+                dataChannel.onopen = () => {
+                    sendBtn.disabled = false;
+                    alert('连接成功！可开始发送文本');
+                };
+            };
+
+            // 接收ICE候选（局域网内地址信息）
+            peerConnection.onicecandidate = e => {
+                if (e.candidate) {
+                    // 演示用：手动复制候选信息给对方（实际可通过WebSocket简化，此处无服务器故手动）
+                    const candidateStr = JSON.stringify(e.candidate);
+                    console.log(`请将以下候选信息发给对方：\n${candidateStr}`);
+                    alert('请查看控制台，复制候选信息发给对方');
+                }
+            };
+
+            // 接收对方offer/answer
+            peerConnection.onnegotiationneeded = () => {
+                if (isHost) {
+                    peerConnection.createOffer().then(offer => {
+                        return peerConnection.setLocalDescription(offer);
+                    }).then(() => {
+                        console.log(`请将以下offer发给对方：\n${JSON.stringify(peerConnection.localDescription)}`);
+                        alert('请查看控制台，复制offer发给对方');
+                    });
+                }
+            };
+        }
+
+        // 发送文本
+        sendBtn.addEventListener('click', () => {
+            const text = sendText.value.trim();
+            if (!text) return;
+            dataChannel.send(text);
+            receiveArea.value += `我（${new Date().toLocaleTimeString()}）：\n${text}\n\n`;
+            receiveArea.scrollTop = receiveArea.scrollHeight;
+            sendText.value = '';
+        });
+
+        // 手动输入对方的offer/answer/候选（演示用，无服务器时手动传递）
+        window.addEventListener('keydown', e => {
+            if (e.ctrlKey && e.key === 'i') {
+                const type = prompt('输入类型：1.offer 2.answer 3.candidate');
+                const data = prompt('输入对方发送的JSON数据');
+                if (!type || !data) return;
+
+                try {
+                    const parsed = JSON.parse(data);
+                    switch (type) {
+                        case '1':
+                            peerConnection.setRemoteDescription(new RTCSessionDescription(parsed))
+                                .then(() => peerConnection.createAnswer())
+                                .then(answer => peerConnection.setLocalDescription(answer))
+                                .then(() => {
+                                    console.log(`请将以下answer发给对方：\n${JSON.stringify(peerConnection.localDescription)}`);
+                                    alert('请查看控制台，复制answer发给对方');
+                                });
+                            break;
+                        case '2':
+                            peerConnection.setRemoteDescription(new RTCSessionDescription(parsed));
+                            break;
+                        case '3':
+                            peerConnection.addIceCandidate(new RTCIceCandidate(parsed));
+                            break;
+                    }
+                } catch (err) {
+                    alert('数据格式错误！');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
