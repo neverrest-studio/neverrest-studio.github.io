@@ -3,179 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>局域网文本互传（修复版）</title>
+    <title>局域网文本互传（极简可行版）</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 500px; margin: 20px auto; padding: 0 15px; }
-        .section { margin: 25px 0; }
-        button { width: 100%; padding: 12px; margin: 10px 0; background: #2563EB; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
-        button:disabled { background: #94A3B8; cursor: not-allowed; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #E2E8F0; border-radius: 6px; box-sizing: border-box; }
-        textarea { width: 100%; height: 120px; padding: 12px; margin: 10px 0; border: 1px solid #E2E8F0; border-radius: 6px; resize: none; box-sizing: border-box; }
-        #myKey { color: #DC2626; font-weight: bold; font-size: 18px; margin: 10px 0; }
-        #status { margin: 10px 0; font-weight: bold; }
-        .success { color: #059669; }
-        .error { color: #DC2626; }
+        body { max-width: 600px; margin: 20px auto; padding: 0 15px; font-family: sans-serif; }
+        .area { margin: 25px 0; }
+        textarea { width: 100%; height: 150px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; resize: none; box-sizing: border-box; }
+        button { padding: 12px 24px; background: #2563EB; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+        #receiveArea { background: #f8f8f8; }
+        .tip { color: #666; font-size: 14px; margin: 10px 0; }
     </style>
 </head>
 <body>
     <h1>局域网文本互传</h1>
 
-    <!-- 1. 生成密钥 -->
-    <div class="section">
-        <h3>1. 生成你的密钥</h3>
-        <button id="genKeyBtn">点击生成密钥</button>
-        <div id="myKey" style="display: none;"></div>
-    </div>
-
-    <!-- 2. 连接对方 -->
-    <div class="section">
-        <h3>2. 连接对方</h3>
-        <input type="text" id="peerKeyInput" placeholder="粘贴对方的密钥">
-        <button id="connectBtn" disabled>点击连接</button>
-        <div id="status" class="error">未连接</div>
-    </div>
-
-    <!-- 3. 聊天区域 -->
-    <div class="section" id="chatArea" style="display: none;">
+    <!-- 发送区：输入文本提交 -->
+    <div class="area">
         <h3>发送文本</h3>
-        <textarea id="sendText" placeholder="输入要发送的内容..."></textarea>
-        <button id="sendBtn">发送</button>
+        <form method="POST" action="">
+            <textarea name="text" placeholder="输入要发送的内容..."></textarea>
+            <br>
+            <button type="submit">发送文本</button>
+        </form>
+        <div class="tip">👉 另一台设备打开下方局域网地址，即可接收</div>
+    </div>
 
-        <h3>接收文本</h3>
+    <!-- 接收区：显示所有提交的文本 -->
+    <div class="area" id="receiveArea">
+        <h3>接收文本（所有设备提交的内容）</h3>
         <textarea id="receiveText" readonly placeholder="等待接收内容..."></textarea>
+        <br>
+        <button onclick="document.getElementById('receiveText').value=''">清空接收区</button>
     </div>
 
     <script>
-        // 简化核心变量，避免复杂依赖
-        let myKey = '';
-        let peerConn;
-        let dataChan;
-        // 纯局域网STUN，确保无外网也能用
-        const iceConfig = {
-            iceServers: [{ urls: 'stun:stun.voiparound.com' }]
-        };
-
-        // 直接获取DOM元素（避免复杂选择器）
-        const genKeyBtn = document.getElementById('genKeyBtn');
-        const myKeyElem = document.getElementById('myKey');
-        const peerKeyInput = document.getElementById('peerKeyInput');
-        const connectBtn = document.getElementById('connectBtn');
-        const statusElem = document.getElementById('status');
-        const chatArea = document.getElementById('chatArea');
-        const sendText = document.getElementById('sendText');
-        const sendBtn = document.getElementById('sendBtn');
-        const receiveText = document.getElementById('receiveText');
-
-        // 1. 生成密钥（点击必触发，逻辑极简）
-        genKeyBtn.onclick = function() {
-            // 生成6位随机密钥（纯数字，易复制）
-            myKey = Math.floor(Math.random() * 900000 + 100000).toString();
-            myKeyElem.textContent = '你的密钥：' + myKey;
-            myKeyElem.style.display = 'block';
-            // 生成密钥后，启用连接按钮（只要对方密钥不为空）
-            checkConnectBtn();
-        };
-
-        // 2. 输入对方密钥时，实时检查是否启用连接按钮
-        peerKeyInput.oninput = checkConnectBtn;
-        function checkConnectBtn() {
-            const peerKey = peerKeyInput.value.trim();
-            connectBtn.disabled = (myKey === '' || peerKey === '' || peerKey.length !== 6);
-        }
-
-        // 3. 连接对方（简化P2P逻辑，减少报错点）
-        connectBtn.onclick = function() {
-            const peerKey = peerKeyInput.value.trim();
-            statusElem.textContent = '正在连接...';
-            connectBtn.disabled = true;
-
-            // 初始化P2P连接
-            peerConn = new RTCPeerConnection(iceConfig);
-            
-            // 创建数据通道（发送文本用）
-            dataChan = peerConn.createDataChannel('chat');
-            dataChan.onmessage = function(e) {
-                // 接收对方消息，追加到文本框
-                const time = new Date().toLocaleTimeString();
-                receiveText.value += `对方(${time})：\n${e.data}\n\n`;
-                receiveText.scrollTop = receiveText.scrollHeight;
-            };
-            dataChan.onopen = function() {
-                // 连接成功，显示聊天区
-                statusElem.textContent = '连接成功！';
-                statusElem.className = 'success';
-                chatArea.style.display = 'block';
-            };
-
-            // 处理ICE候选（局域网地址）
-            peerConn.onicecandidate = function(e) {
-                if (e.candidate) {
-                    // 用对方密钥存候选，供对方读取
-                    localStorage.setItem(`p2p_ice_${peerKey}`, JSON.stringify(e.candidate));
-                }
-            };
-
-            // 读取对方的ICE候选
-            peerConn.oniceconnectionstatechange = function() {
-                if (peerConn.iceConnectionState === 'checking') {
-                    const peerIce = localStorage.getItem(`p2p_ice_${myKey}`);
-                    if (peerIce) {
-                        peerConn.addIceCandidate(new RTCIceCandidate(JSON.parse(peerIce)))
-                            .catch(err => statusElem.textContent = '连接失败：' + err.message);
-                    }
-                }
-            };
-
-            // 生成连接请求，等待对方响应
-            peerConn.createOffer()
-                .then(offer => peerConn.setLocalDescription(offer))
-                .then(() => {
-                    // 用对方密钥存自己的Offer
-                    localStorage.setItem(`p2p_offer_${peerKey}`, JSON.stringify(peerConn.localDescription));
-                    // 轮询对方的响应（Answer）
-                    const poll = setInterval(() => {
-                        const peerAnswer = localStorage.getItem(`p2p_answer_${myKey}`);
-                        if (peerAnswer) {
-                            peerConn.setRemoteDescription(new RTCSessionDescription(JSON.parse(peerAnswer)))
-                                .catch(err => statusElem.textContent = '连接失败：' + err.message);
-                            clearInterval(poll);
-                        }
-                    }, 500);
-                })
-                .catch(err => {
-                    statusElem.textContent = '连接失败：' + err.message;
-                    connectBtn.disabled = false;
+        // 页面加载时，读取并显示已接收的文本
+        window.onload = function() {
+            const receiveText = document.getElementById('receiveText');
+            // 从服务器获取历史文本（后端会把提交的文本存在本地文件里）
+            fetch('?get=1')
+                .then(res => res.text())
+                .then(data => {
+                    receiveText.value = data || '暂无文本';
                 });
-
-            // 同时监听对方的连接请求（如果自己是后点击连接的）
-            setTimeout(() => {
-                const peerOffer = localStorage.getItem(`p2p_offer_${myKey}`);
-                if (peerOffer) {
-                    // 响应对方的请求，生成Answer
-                    peerConn.setRemoteDescription(new RTCSessionDescription(JSON.parse(peerOffer)))
-                        .then(() => peerConn.createAnswer())
-                        .then(answer => peerConn.setLocalDescription(answer))
-                        .then(() => {
-                            // 用对方密钥存自己的Answer
-                            localStorage.setItem(`p2p_answer_${peerKey}`, JSON.stringify(answer));
-                        })
-                        .catch(err => statusElem.textContent = '连接失败：' + err.message);
-                }
-            }, 1000);
-        };
-
-        // 4. 发送文本
-        sendBtn.onclick = function() {
-            const text = sendText.value.trim();
-            if (!text) return;
-            // 发送文本给对方
-            dataChan.send(text);
-            // 自己也显示发送的内容
-            const time = new Date().toLocaleTimeString();
-            receiveText.value += `我(${time})：\n${text}\n\n`;
-            receiveText.scrollTop = receiveText.scrollHeight;
-            // 清空输入框
-            sendText.value = '';
         };
     </script>
 </body>
