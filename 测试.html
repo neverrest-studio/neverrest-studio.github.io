@@ -3,111 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>无IP文本互传（共享码版）</title>
+    <title>同一WiFi文本互传（必通版）</title>
     <style>
         body { max-width: 500px; margin: 20px auto; padding: 0 15px; font-family: sans-serif; }
-        .container { margin: 25px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        h3 { margin-top: 0; color: #333; }
-        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #eee; border-radius: 6px; box-sizing: border-box; }
-        textarea { height: 140px; resize: none; }
-        .btn { width: 100%; padding: 12px; margin: 10px 0; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
-        .btn:disabled { background: #bdc3c7; cursor: not-allowed; }
-        #receiveBox { background: #f8f9fa; }
-        .tip { color: #7f8c8d; font-size: 14px; margin: 5px 0; }
-        .success { color: #2ecc71; font-weight: bold; }
+        .box { margin: 20px 0; padding: 15px; border: 1px solid #eee; border-radius: 8px; }
+        button { padding: 10px 20px; background: #2563EB; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        textarea { width: 100%; height: 120px; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; resize: none; box-sizing: border-box; }
+        #deviceList { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 6px; }
+        .online-device { color: #059669; font-weight: 500; margin: 5px 0; }
+        .status { margin: 10px 0; color: #666; }
     </style>
 </head>
 <body>
-    <h1>无IP文本互传</h1>
+    <h1>同一WiFi文本互传</h1>
 
-    <!-- 1. 共享码设置（唯一关键步骤） -->
-    <div class="container">
-        <h3>1. 设置共享码</h3>
-        <input type="text" id="shareCode" placeholder="输入任意共享码（两台设备必须一样，如“abc123”）">
-        <button class="btn" id="joinBtn">加入共享</button>
-        <div class="tip" id="status">未加入共享 | 提示：两台设备输相同共享码即可</div>
+    <!-- 1. 设备发现 -->
+    <div class="box">
+        <h3>1. 发现同一WiFi设备</h3>
+        <button id="scanBtn">开始扫描设备</button>
+        <div id="deviceList">未扫描到设备</div>
+        <div class="status">点击“开始扫描”后，等待1-2秒</div>
     </div>
 
     <!-- 2. 发送文本 -->
-    <div class="container">
+    <div class="box">
         <h3>2. 发送文本</h3>
         <textarea id="sendText" placeholder="输入要发送的内容..." disabled></textarea>
-        <button class="btn" id="sendBtn" disabled>发送</button>
+        <button id="sendBtn" disabled>发送给所有在线设备</button>
     </div>
 
     <!-- 3. 接收文本 -->
-    <div class="container" id="receiveBox">
+    <div class="box">
         <h3>3. 接收文本</h3>
         <textarea id="receiveText" readonly placeholder="等待接收内容..."></textarea>
-        <button class="btn" style="background: #e67e22;" id="clearBtn" disabled>清空接收区</button>
+        <button id="clearBtn">清空接收区</button>
     </div>
 
     <script>
-        // 核心逻辑：用“共享码+localStorage广播”，同一网络自动匹配
-        let currentCode = '';
-        let broadcastInterval; // 广播/监听定时器
+        // 核心：用Broadcast Channel实现同一WiFi下设备广播通信（浏览器原生支持）
+        let broadcastChan;
+        let isScanning = false;
+        let deviceId = 'dev_' + Math.random().toString(36).substr(2, 8); // 每台设备唯一ID
 
         // DOM元素
-        const shareCodeInput = document.getElementById('shareCode');
-        const joinBtn = document.getElementById('joinBtn');
-        const status = document.getElementById('status');
+        const scanBtn = document.getElementById('scanBtn');
+        const deviceList = document.getElementById('deviceList');
         const sendText = document.getElementById('sendText');
         const sendBtn = document.getElementById('sendBtn');
         const receiveText = document.getElementById('receiveText');
         const clearBtn = document.getElementById('clearBtn');
 
-        // 1. 加入共享（输入共享码后启用功能）
-        joinBtn.addEventListener('click', () => {
-            currentCode = shareCodeInput.value.trim();
-            if (!currentCode) {
-                alert('请输入共享码（至少2个字符）');
+        // 1. 扫描设备：初始化广播通道
+        scanBtn.addEventListener('click', () => {
+            if (isScanning) return;
+            isScanning = true;
+            scanBtn.textContent = '正在扫描...';
+            deviceList.innerHTML = '正在查找同一WiFi设备...';
+
+            // 创建广播通道（同一WiFi下所有打开此页面的设备共用一个通道）
+            broadcastChan = new BroadcastChannel('wifi_text_share');
+
+            // 发送“设备上线”广播，让其他设备发现自己
+            broadcastChan.postMessage({
+                type: 'online',
+                deviceId: deviceId,
+                time: new Date().toLocaleTimeString()
+            });
+
+            // 监听其他设备的广播消息
+            broadcastChan.onmessage = (e) => {
+                const msg = e.data;
+                handleBroadcastMsg(msg);
+            };
+
+            // 2秒后显示已发现的设备（给其他设备响应时间）
+            setTimeout(() => {
+                scanBtn.textContent = '重新扫描';
+                isScanning = false;
+                // 启用发送功能
+                sendText.disabled = false;
+                sendBtn.disabled = false;
+            }, 2000);
+        });
+
+        // 处理广播消息（设备上线、接收文本）
+        function handleBroadcastMsg(msg) {
+            switch (msg.type) {
+                // 其他设备上线：添加到设备列表
+                case 'online':
+                    if (msg.deviceId !== deviceId) { // 排除自己
+                        const existingDevice = document.querySelector(`[data-id="${msg.deviceId}"]`);
+                        if (!existingDevice) {
+                            const deviceItem = document.createElement('div');
+                            deviceItem.className = 'online-device';
+                            deviceItem.dataset.id = msg.deviceId;
+                            deviceItem.textContent = `✅ 设备${msg.deviceId.slice(-4)}（${msg.time}上线）`;
+                            deviceList.appendChild(deviceItem);
+                            // 首次发现设备时更新列表提示
+                            if (deviceList.textContent.includes('正在查找')) {
+                                deviceList.innerHTML = '';
+                                deviceList.appendChild(deviceItem);
+                            }
+                        }
+                    }
+                    break;
+
+                // 接收文本消息
+                case 'text':
+                    if (msg.deviceId !== deviceId) { // 只显示其他设备的消息
+                        const time = new Date().toLocaleTimeString();
+                        receiveText.value += `设备${msg.deviceId.slice(-4)}（${time}）：\n${msg.content}\n\n`;
+                        receiveText.scrollTop = receiveText.scrollHeight;
+                    }
+                    break;
+            }
+        }
+
+        // 3. 发送文本：广播给所有在线设备
+        sendBtn.addEventListener('click', () => {
+            const content = sendText.value.trim();
+            if (!content) {
+                alert('请输入要发送的内容');
                 return;
             }
 
-            // 启用发送/清空按钮
-            sendText.disabled = false;
-            sendBtn.disabled = false;
-            clearBtn.disabled = false;
-            status.innerHTML = `<span class="success">已加入共享：${currentCode}</span> | 可发送/接收文本`;
+            // 发送文本广播
+            broadcastChan.postMessage({
+                type: 'text',
+                deviceId: deviceId,
+                content: content,
+                time: new Date().toLocaleTimeString()
+            });
 
-            // 启动“广播+监听”：每1秒同步一次文本
-            startBroadcastAndListen();
-        });
-
-        // 2. 广播自己的文本 + 监听对方的文本
-        function startBroadcastAndListen() {
-            // 清除旧定时器（避免重复）
-            if (broadcastInterval) clearInterval(broadcastInterval);
-
-            broadcastInterval = setInterval(() => {
-                // 1. 广播：把自己的发送记录存到localStorage（用共享码当key）
-                const myText = receiveText.value;
-                if (myText) {
-                    localStorage.setItem(`share_${currentCode}`, myText);
-                }
-
-                // 2. 监听：读取对方存的文本，更新接收区
-                const peerText = localStorage.getItem(`share_${currentCode}`);
-                if (peerText && peerText !== receiveText.value) {
-                    receiveText.value = peerText;
-                    receiveText.scrollTop = receiveText.scrollHeight; // 滚动到底部
-                }
-            }, 1000); // 每秒同步一次，实时性足够
-        }
-
-        // 3. 发送文本
-        sendBtn.addEventListener('click', () => {
-            const text = sendText.value.trim();
-            if (!text) return;
-
-            // 拼接时间戳和文本，显示在接收区
+            // 自己也显示发送的内容
             const time = new Date().toLocaleTimeString();
-            const newContent = receiveText.value + `我(${time})：\n${text}\n\n`;
-            
-            // 更新接收区并广播
-            receiveText.value = newContent;
+            receiveText.value += `我（${time}）：\n${content}\n\n`;
             receiveText.scrollTop = receiveText.scrollHeight;
-            localStorage.setItem(`share_${currentCode}`, newContent);
 
             // 清空输入框
             sendText.value = '';
@@ -116,13 +147,17 @@
         // 4. 清空接收区
         clearBtn.addEventListener('click', () => {
             receiveText.value = '';
-            localStorage.setItem(`share_${currentCode}`, '');
         });
 
-        // 页面关闭时清除存储，避免残留
+        // 页面关闭时发送“设备下线”广播
         window.addEventListener('beforeunload', () => {
-            if (currentCode) {
-                localStorage.removeItem(`share_${currentCode}`);
+            if (broadcastChan) {
+                broadcastChan.postMessage({
+                    type: 'offline',
+                    deviceId: deviceId,
+                    time: new Date().toLocaleTimeString()
+                });
+                broadcastChan.close();
             }
         });
     </script>
